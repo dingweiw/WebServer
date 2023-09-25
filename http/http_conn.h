@@ -63,9 +63,9 @@ public:
     };
     enum LINE_STATUS
     {
-        LINK_OK = 0,
-        LINK_BAD,
-        LINK_OPEN
+        LINE_OK = 0,
+        LINE_BAD,
+        LINE_OPEN
     };
 public:
     http_conn();
