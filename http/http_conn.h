@@ -128,7 +128,7 @@ private:
     long m_content_length;
     bool m_linger;
     char *m_file_address;
-    struct stat m_file_address;
+    struct stat m_file_stat;
     struct iovec m_iv[2];
     int m_iv_count;
     int cgi; //是否启用POST
