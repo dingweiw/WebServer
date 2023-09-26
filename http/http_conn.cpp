@@ -124,7 +124,7 @@ void http_conn::init(int sockfd, const sockaddr_in &addr, char *root,
     m_TRIGMode = TRIGMode;
     m_close_log = close_log;
 
-    strcpy(sql_user, user.c_str());
+    strcpy(sql_user, user.c_str());   // 复制对象
     strcpy(sql_passwd, passwd.c_str());
     strcpy(sql_name, sqlname.c_str());
 
@@ -136,11 +136,11 @@ void http_conn::init(int sockfd, const sockaddr_in &addr, char *root,
 void http_conn::init()
 {
     mysql = NULL;
-    bytes_to_send = 0;
-    bytes_have_send = 0;
+    bytes_to_send = 0;  //发送
+    bytes_have_send = 0; //已经发送？
     m_check_state = CHECK_STATE_REQUESTLINE;
     m_linger = false;
-    m_method = GET;
+    m_method = GET; // 方法 POST GET
     m_url = 0;
     m_version = 0;
     m_content_length = 0;
@@ -161,6 +161,16 @@ void http_conn::init()
 
 // 从状态机，用于分析出一行内容
 // 返回值为行的读取状态，有LINE_OK, LINE_BAD, LINE_OPEN
+/*
+LINE_OK：成功解析出一行，可以继续处理。
+LINE_BAD：无法解析的行，出现错误。
+LINE_OPEN：行不完整，需要继续接收更多数据。
+*/
+/*
+这段代码的主要目的是解析 HTTP 请求报文中的行，判断行的完整性，以便后续的 HTTP 报文解析。
+如果返回 LINE_OK，表示成功解析一行，并且可以继续处理该行的内容。如果返回 LINE_BAD，表示解析出错，
+需要处理错误情况。如果返回 LINE_OPEN，表示行不完整，需要等待更多数据以完成行的解析。
+*/
 http_conn::LINE_STATUS http_conn::parse_line()
 {
     char temp;
@@ -169,15 +179,15 @@ http_conn::LINE_STATUS http_conn::parse_line()
         temp = m_read_buf[m_checked_idx];
         if (temp == '\r')
         {
-            if ((m_checked_idx + 1) == m_read_idx)
-                return LINE_OPEN;
-            else if (m_read_buf[m_checked_idx + 1] == '\n')
+            if ((m_checked_idx + 1) == m_read_idx)   
+                return LINE_OPEN; 
+            else if (m_read_buf[m_checked_idx + 1] == '\n') //下一个字符是\n, 将当前字符是下一个字符设置为\0
             {
                 m_read_buf[m_checked_idx++] = '\0';
                 m_read_buf[m_checked_idx++] = '\0';
                 return LINE_OK;
             }
-            return LINE_BAD;
+            return LINE_BAD;  // 如果不是表示行格式不正确
         }
         else if (temp == '\n')
         {
@@ -223,7 +233,7 @@ bool http_conn::read_once()
             bytes_read = recv(m_sockfd, m_read_buf + m_read_idx, READ_BUFFER_SIZE - m_read_idx, 0);
             if (bytes_read == -1)
             {
-                if (errno == EAGAIN || errno == EWOULDBLOCK)
+                if (errno == EAGAIN || errno == EWOULDBLOCK) // 表示当前没有数据可读 退出循环
                     break;
                 return false;
             }
@@ -240,13 +250,13 @@ bool http_conn::read_once()
 // 解析http请求行，获得请求方法，目标url和http版本号
 http_conn::HTTP_CODE http_conn::parse_request_line(char *text)
 {
-    m_url = strpbrk(text, " \t");
+    m_url = strpbrk(text, " \t"); // 在text中查找第一个出现的空格或制表符tab，将其位置赋值给m_url
     if (!m_url)
     {
         return BAD_REQUEST;
     }
-    *m_url++ = '\0';
-    char *method = text;
+    *m_url++ = '\0'; // 将找到的空格或制表符替换为0，分割请求方法和URL，并将m_url指针移动到URL开始
+    char *method = text; // 保存请求方法到method
     if (strcasecmp(method, "GET") == 0)
         m_method = GET;
     else if (strcasecmp(method, "POST") == 0)
@@ -256,20 +266,20 @@ http_conn::HTTP_CODE http_conn::parse_request_line(char *text)
     }
     else
         return BAD_REQUEST;
-    m_url += strspn(m_url, " \t");
-    m_version = strpbrk(m_url, " \t");
+    m_url += strspn(m_url, " \t");// 跳过URL前面的空格
+    m_version = strpbrk(m_url, " \t");//查找URL中的空格或制表符，将其位置指针赋值给m_version
     if (!m_version)
         return BAD_REQUEST;
     *m_version++ = '\0';
-    m_version += strspn(m_version, " \t");
-    if (strcasecmp(m_version, "HTTP/1.1") != 0)
+    m_version += strspn(m_version, " \t");// 跳过版本前面的空格或制表符
+    if (strcasecmp(m_version, "HTTP/1.1") != 0) //strcasecmp是否相等，忽略大小写
         return BAD_REQUEST;
-    if (strncasecmp(m_url, "http://", 7) == 0)
+    if (strncasecmp(m_url, "http://", 7) == 0) //strncasecmp用来比较str1和str2字符串的前7个字符
     {
         m_url += 7;
-        m_url = strchr(m_url, '/');
+        m_url = strchr(m_url, '/'); //strchr用于查找字符串中的一个字符，并返回该字符在字符串中第一次出现的位置
     }
-    if (strncasecmp(m_url, "http://", 8) == 0)
+    if (strncasecmp(m_url, "https://", 8) == 0)
     {
         m_url += 8;
         m_url = strchr(m_url, '/');
@@ -310,7 +320,7 @@ http_conn::HTTP_CODE http_conn::parse_headers(char *text)
     {
         text += 15;
         text += strspn(text, " \t");
-        m_content_length = atol(text);
+        m_content_length = atol(text);//将str转换为长整数
     }
     else if (strncasecmp(text, "Host:", 5) == 0)
     {
@@ -389,7 +399,7 @@ http_conn::HTTP_CODE http_conn::do_request()
 {
     strcpy(m_real_file, doc_root);
     int len = strlen(doc_root);
-    const char *p = strrchr(m_url, '/');
+    const char *p = strrchr(m_url, '/'); //查找字符串中最后一次出现字符的位置
 
     //处理cgi
     if (cgi == 1 && (*(p + 1) == '2' || *(p + 1) == '3'))
