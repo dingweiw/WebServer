@@ -37,7 +37,7 @@ class util_timer
 {
 public:
     util_timer() : prev(NULL), next(NULL)   {}
-    time_t expires;  // 定时器超时时间 = 浏览器和服务器连接时刻 + 固定时间
+    time_t expire;  // 定时器超时时间 = 浏览器和服务器连接时刻 + 固定时间
 
     void (*cb_func)(client_data *d); // 回调函数，通过函数指向调用的函数
     client_data *user_data;  // 连接资源

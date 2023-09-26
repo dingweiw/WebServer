@@ -41,7 +41,7 @@ void sort_timer_lst::add_timer(util_timer *timer)
         head = tail = timer; // 直接插入
         return;
     }
-    if (timer->expires < head->expires) // 如果新的定时器的超时时间小于当前头部节点
+    if (timer->expire < head->expire) // 如果新的定时器的超时时间小于当前头部节点
     {
         // 直接将当前定时器节点作为头结点
         timer->next = head;
@@ -61,7 +61,7 @@ void sort_timer_lst::adjust_timer(util_timer *timer)
     }
     util_timer *tmp = timer->next;
      // 被调整的定时器是链表的尾部节点 或 定时器超时值仍然小下一个定时器超时值
-    if (!tmp || (timer->expires < tmp->expires))
+    if (!tmp || (timer->expire < tmp->expire))
     {
         return; //不调整
     }
@@ -134,7 +134,7 @@ void sort_timer_lst::tick()
     while (tmp)
     {
         // 链表为升序排序，当前时间小于该定时器的超过时间，则后面的的定时器也没有到期
-        if (cur < tmp->expires)
+        if (cur < tmp->expire)
         {
             break;
         }
@@ -159,7 +159,7 @@ void sort_timer_lst::add_timer(util_timer *timer, util_timer *lst_head)
     // 遍历当前结点之后的链表，按照超时时间找到目标定时器对应的位置
     while (tmp)
     {
-        if (timer->expires < tmp->expires)
+        if (timer->expire < tmp->expire)
         {
             prev->next = timer;
             timer->next = tmp;

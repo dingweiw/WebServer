@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "*.html": "html",
-        "exception": "cpp"
+        "exception": "cpp",
+        "io_context": "cpp",
+        "timer": "cpp"
     }
 }
